@@ -4,111 +4,114 @@ const RESOURCE = "/players";
 const API = BASE + COHORT + RESOURCE;
 
 // MY STATE VARIABLES
-let puppies = [];
-let selectedPuppies;
+let players = [];
+let selectedPlayer;
 
-async function getPuppies() {
+
+
+async function getPlayers() {
   try {
     const res = await fetch(API);
-    const JSON = await res.json();
-    puppies = JSON.data;
+    const result = await res.json();
+    players = result.data.players;
     render();
-  } catch (e) {
-    console.error();
+  } catch (err) {
+    console.log(err);
   }
 }
 
-async function getPuppy(id) {
+async function getPlayer(id) {
   try {
-    const res = await fetch(API + "/" + id);
-    const json = await res.json();
-    selectedPuppies = json.data;
+    const res = await fetch(`${API}/${id}`);
+    const result = await res.json();
+    selectedPlayer = result.data.player;
     render();
-  } catch (e) {
-    console.error(e);
+  } catch (err) {
+    console.log(err);
   }
 }
 
-async function addPuppy(puppy) {
+async function addPlayer(player) {
   try {
-    const res = fetch(API, {
-      method: `POST`,
-      body: JSON.stringify(puppy),
-      headers: { "Content-Type": "application.json" },
+    const res = await fetch(API, {
+      method: "POST",
+      body: JSON.stringify(player),
+      headers: { "Content-Type": "application/json" },
     });
-    const json = await res.join();
-    if (json.sucess) {
-      getPuppiesLists();
+    const json = await res.json();
+    if (json.success) {
+      await getPlayers();
     }
-  } catch (e) {
-    console.error(e);
+  } catch (err) {
+    console.log(err);
   }
 }
 
-async function removePuppy(id) {
+async function removePlayer(id) {
   try {
     const res = await fetch(`${API}/${id}`, {
       method: "DELETE",
     });
     if (res.status === 204) {
-      selectedPuppies = null;
-      getPuppiesLists();
+      selectedPlayer = null;
+      await getPlayers();
     }
-  } catch (e) {
-    console.error(e);
+  } catch (err) {
+    console.log(err);
   }
 }
 
 // Inner HTML Functions that connects with the Async functions to grab the data
 // and display it
 
-function PuppyListItem(puppy) {
+function PlayerListItem(player) {
   const li = document.createElement("li");
   li.innerHTML = `
-      <a href="#selected">${puppy.name}</a>
+      <a href="#selected"> <img alt="${player.name}" src="${player.imageUrl}" width=15%> ${player.name}</a>
     `;
 
-  li.addEventListener("click", () => getPuppy(puppy.id));
+  li.addEventListener("click", () => getPlayer(player.id));
   return li;
 }
 
-function PuppyList() {
+function PlayerList() {
   const ul = document.createElement("ul");
   ul.classList.add("lineup");
 
-  const puppies = puppies.map(PuppyListItem);
-  ul.replaceChildren(...puppies);
+  const items = players.map(PlayerListItem);
+  ul.replaceChildren(...items);
 
   return ul;
 }
 
-function PuppyDetails() {
-  if (!selectedPuppies) {
+function PlayerDetails() {
+  if (!selectedPlayer) {
     const p = document.createElement("p");
-    p.textContent = "Please select a puppy to learn more.";
+    p.textContent = "Please select a player to learn more.";
     return p;
   }
 
-  const puppy = document.createElement("section");
-  artist.classList.add("puppy");
-  artist.innerHTML = `
-      <h3>${selectedPuppies.name} #${selectedPuppies.id}</h3>
+  const playerInfo = document.createElement("section");
+  playerInfo.innerHTML = `
+      <h3>${selectedPlayer.name} #${selectedPlayer.id}</h3>
       <figure>
-        <img alt=${selectedPuppies.name} #${selectedPuppies.imageUrl} />
+        <img alt="${selectedPlayer.name}" src="${selectedPlayer.imageUrl}" width=60% />
       </figure>
-      <p>${selectedPuppies.description}</p>
-      <button>Remove Puppy</button> 
+      <p>${selectedPlayer.breed}</p>
+      <p>${selectedPlayer.status}</p>
+      <p>${selectedPlayer.teamId}</p>
+      <button>Remove Player</button> 
     `;
 
-  const button = puppy.querySelector("button");
+  const button = playerInfo.querySelector("button");
   button.addEventListener("click", function () {
-    removePuppy(selectedPuppies.id);
+    removePlayer(selectedPlayer.id);
   });
 
-  return puppy;
+  return playerInfo;
 }
 
-function NewPuppyForm() {
+function NewPlayerForm() {
   const form = document.createElement("form");
   form.innerHTML = `
       <label>
@@ -116,24 +119,33 @@ function NewPuppyForm() {
         <input name="name" required />
       </label>
       <label>
-        Description
-        <input name="description" required />
+        Breed
+        <input name="breed" required />
       </label>
       <label>
-        Profile Picture
+        Status
+        <select name="status">
+          <option value="field">Field</option>
+          <option value="bench">Bench</option>
+        </select>
+      </label>
+      <label>
+        ImageUrl
         <input name="imageUrl" required />
       </label>
-      <button>Invite puppy</button>
+      <button>Invite Player</button>
     `;
 
   form.addEventListener("submit", function (e) {
     e.preventDefault();
     const data = new FormData(form);
-    addPuppy({
+    addPlayer({
       name: data.get("name"),
-      description: data.get("description"),
+      breed: data.get("breed"),
+      status: data.get("status"),
       imageUrl: data.get("imageUrl"),
     });
+    form.reset();
   });
 
   return form;
@@ -144,25 +156,26 @@ function render() {
   application.innerHTML = `
     <main>
       <section>
-        <h2>The Lineup<//h2>
-        <PuppyList></PuppyList>
-        <h3>Invite New Puppy</h3>
-        <NewPuppyForm></NewPuppyForm>
+        <h2>Player Lineup</h2>
+        <div id= "player-list"></div>
+        <h3>Invite a New Player</h3>
+        <div id= "new-player-form"></div>
       </section>
-      <section id="selected">
-        <h2>Puppy Details</h2>
-        <PuppyDetails></PuppyDetails>
+      <section id= "selected">
+        <h2>Player Details</h2>
+        <div id= "player-details"></div>
       </section>
     </main>
     `;
 
-  application.querySelector("PuppyList").replaceWith(PuppyList());
-  application.querySelector("NewPuppyForm").replaceWith(NewPuppyForm());
-  application.querySelector("PuppyDetails").replaceWith(PuppyDetails());
+  application.querySelector("#player-list").replaceWith(PlayerList());
+  application.querySelector("#new-player-form").replaceWith(NewPlayerForm());
+  application.querySelector("#player-details").replaceWith(PlayerDetails());
 }
 
 async function init() {
-  await getPuppies();
+  await getPlayers();
+
   render();
 }
 
